@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Crop Analytics Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Local custom styles -->
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        agriGreen: '#16a34a',
+                        agriDark: '#0f172a',
+                        agriAccent: '#22c55e',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 space-y-2"></div>
+
+    <!-- AUTH SECTION: LOGIN & REGISTER (FULLSCREEN OVERLAY) -->
+    <section id="authOverlay" class="fixed inset-0 bg-slate-900 z-50 flex items-stretch justify-center overflow-y-auto">
+
+        <!-- LEFT: ATTRACTIVE FARM IMAGERY PANEL -->
+        <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1400&q=80"
+                alt="Golden wheat field at sunrise" loading="eager"
+                onerror="this.style.display='none'; this.parentElement.classList.add('auth-img-fallback');"
+                class="absolute inset-0 w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-emerald-900/30"></div>
+            <div class="relative z-10 flex flex-col justify-between p-10 text-white w-full">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-wheat-awn text-agriAccent text-3xl"></i>
+                    <span class="text-xl font-extrabold tracking-wider">AgriVision AI</span>
+                </div>
+                <div class="space-y-5 max-w-md">
+                    <h1 class="text-4xl font-extrabold leading-tight">Smarter fields.<br>Healthier harvests.</h1>
+                    <p class="text-slate-200 text-sm leading-relaxed">AI-powered leaf diagnostics, live weather &amp; soil intelligence, and yield forecasting — built for farmers and agronomists who want data-driven decisions on the land.</p>
+                    <div class="grid grid-cols-3 gap-4 pt-4 border-t border-white/20">
+                        <div>
+                            <p class="text-2xl font-extrabold text-agriAccent">4</p>
+                            <p class="text-xs text-slate-300">Soil Profiles</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-extrabold text-agriAccent">Live</p>
+                            <p class="text-xs text-slate-300">Weather &amp; Soil Data</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-extrabold text-agriAccent">Local</p>
+                            <p class="text-xs text-slate-300">No Backend</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400">Photo via Unsplash — for illustrative purposes.</p>
+            </div>
+        </div>
+
+        <!-- Right: AUTH CARDS -->
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-4 bg-slate-900">
+
+            <!-- LOGIN CARD -->
+            <div id="loginCard" class="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-emerald-100 text-agriGreen rounded-2xl mb-2">
+                        <i class="fa-solid fa-wheat-awn text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">Welcome Back</h2>
+                    <p class="text-slate-500 text-sm">Sign in to access AI Smart Agriculture Analytics</p>
+                </div>
+
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Email Address</label>
+                        <input type="email" id="loginEmail" placeholder="farmer@agri.com" value="farmer@agri.com" required
+                            class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" value="password123" required
+                            class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                    </div>
+                    <button type="submit" id="loginBtn" class="w-full py-3 bg-agriGreen text-white font-semibold rounded-xl shadow-md hover:bg-emerald-700 transition">
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+                    Don't have an account? 
+                    <button onclick="toggleAuthMode('register')" class="text-agriGreen font-bold hover:underline">Register here</button>
+                </div>
+            </div>
+
+            <!-- REGISTER CARD -->
+            <div id="registerCard" class="hidden bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl space-y-6">
+                <div class="text-center space-y-2">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-emerald-100 text-agriGreen rounded-2xl mb-2">
+                        <i class="fa-solid fa-user-plus text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">Create Account</h2>
+                    <p class="text-slate-500 text-sm">Register to manage crop diagnostics</p>
+                </div>
+
+                <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+                        <input type="text" id="regName" placeholder="John Doe" required
+                            class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Email Address</label>
+                        <input type="email" id="regEmail" placeholder="farmer@agri.com" required
+                            class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                        <input type="password" id="regPassword" placeholder="••••••••" required
+                            class="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                    </div>
+                    <button type="submit" id="regBtn" class="w-full py-3 bg-agriGreen text-white font-semibold rounded-xl shadow-md hover:bg-emerald-700 transition">
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+                    Already have an account? 
+                    <button onclick="toggleAuthMode('login')" class="text-agriGreen font-bold hover:underline">Sign In</button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- MAIN APP DASHBOARD (HIDDEN UNTIL AUTHENTICATED) -->
+    <div id="appContainer" class="hidden w-full flex flex-col md:flex-row min-h-screen">
+
+        <!-- Mobile Header Navigation -->
+        <header class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center shadow-md">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-wheat-awn text-agriGreen text-2xl"></i>
+                <span class="font-bold text-lg tracking-wide">AgriVision AI</span>
+            </div>
+            <button id="mobileMenuBtn" class="text-slate-300 hover:text-white text-2xl focus:outline-none">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </header>
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="bg-slate-900 text-slate-300 w-full md:w-64 p-6 flex flex-col justify-between hidden md:flex min-h-screen z-20">
+            <div>
+                <!-- Brand Logo -->
+                <div class="flex items-center space-x-3 mb-8">
+                    <i class="fa-solid fa-wheat-awn text-agriGreen text-3xl"></i>
+                    <span class="text-xl font-extrabold text-white tracking-wider">AgriVision AI</span>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="space-y-2">
+                    <button onclick="switchView('searchView')" id="navSearch" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition text-white bg-agriGreen">
+                        <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                        <span>Search & Scan</span>
+                    </button>
+                    <button onclick="switchView('resultsView')" id="navResults" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition text-slate-400 hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-chart-line text-lg"></i>
+                        <span>Analytics Results</span>
+                    </button>
+                    <button onclick="switchView('historyView')" id="navHistory" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition text-slate-400 hover:bg-slate-800 hover:text-white">
+                        <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                        <span>Scan History</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- User Profile & Logout Section -->
+            <div class="pt-6 border-t border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-800 flex items-center justify-center text-white font-bold text-sm" id="userAvatar">
+                            U
+                        </div>
+                        <div class="text-xs">
+                            <p class="font-semibold text-white" id="userNameDisplay">User</p>
+                            <p class="text-slate-500" id="userEmailDisplay">farmer@agri.com</p>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" class="text-slate-400 hover:text-red-400 text-base" title="Logout">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Mode:</span>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 font-semibold border border-emerald-800 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Local Only
+                    </span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+
+            <!-- PAGE 1: SEARCH & SCAN -->
+            <section id="searchView" class="space-y-6">
+
+                <!-- Hero Banner -->
+                <div class="relative rounded-2xl overflow-hidden shadow-sm min-h-[190px] flex items-center">
+                    <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80"
+                        alt="Lush green crop field" loading="lazy"
+                        onerror="this.style.display='none'; this.parentElement.classList.add('hero-fallback');"
+                        class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-900/55 to-emerald-900/20"></div>
+                    <div class="relative z-10 p-6 md:p-8 text-white space-y-3">
+                        <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-400/30">
+                            <i class="fa-solid fa-satellite-dish"></i> AI-Powered Field Intelligence
+                        </span>
+                        <h1 class="text-2xl md:text-3xl font-bold">Crop Analysis Portal</h1>
+                        <p class="text-slate-200 text-sm max-w-xl">Upload leaf images or select farm parameters for AI diagnostics, live weather &amp; soil data, and yield forecasting — all computed in your browser.</p>
+                        <div class="flex flex-wrap gap-4 pt-1 text-xs text-slate-200">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-microchip text-agriAccent"></i> On-Device Pixel Analysis</span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-cloud-sun-rain text-agriAccent"></i> Live Weather Feed</span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-layer-group text-agriAccent"></i> 4 Soil Profiles</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search & Input Form -->
+                <form id="cropSearchForm" novalidate class="grid grid-cols-1 lg:grid-cols-3 gap-6" onsubmit="handleFormSubmit(event)">
+                    <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                        <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-agriGreen"></i> Farm Metadata
+                        </h2>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Country</label>
+                                <select id="inputCountry" required onchange="handleCountryChange()"
+                                    class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                                    <option value="">Select Country...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">State / Province</label>
+                                <select id="inputState" required
+                                    class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                                    <option value="">Select State...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">City</label>
+                            <input type="text" id="inputCity" placeholder="e.g., Ludhiana" required
+                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Crop Variety</label>
+                            <select id="inputCrop" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                                <option value="">Select Crop...</option>
+                                <option value="Wheat">Wheat</option>
+                                <option value="Rice">Rice</option>
+                                <option value="Maize">Maize</option>
+                                <option value="Cotton">Cotton</option>
+                                <option value="Sugarcane">Sugarcane</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Soil pH</label>
+                                <input type="number" id="inputPh" step="0.1" min="0" max="14" placeholder="6.5" value="6.8" required
+                                    class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Moisture (%)</label>
+                                <input type="number" id="inputMoisture" min="0" max="100" placeholder="45" value="52" required
+                                    class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-map text-agriGreen"></i> Farm / Land Size (acres)
+                            </label>
+                            <input type="number" id="inputFarmSize" min="0.1" step="0.1" placeholder="5" value="5"
+                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen focus:outline-none">
+                            <p class="text-[10px] text-slate-400 mt-1">Used to project total harvest across your land.</p>
+                        </div>
+
+                        <!-- Soil Type Selector -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                                <span>Soil Type</span>
+                                <span class="text-slate-400 font-normal normal-case">Soil DataSet v2, 368 imgs</span>
+                            </label>
+                            <input type="hidden" id="inputSoilType" value="Alluvial Soil" required>
+                            <div id="soilTypeGrid" class="grid grid-cols-2 gap-2">
+                                <button type="button" data-soil="Alluvial Soil" data-count="195" onclick="selectSoilType(this)"
+                                    class="soil-swatch-btn selected group relative rounded-xl border-2 border-agriGreen overflow-hidden text-left focus:outline-none">
+                                    <div class="h-14 w-full" style="background:
+                                        radial-gradient(circle at 20% 30%, rgba(0,0,0,0.06) 0 2px, transparent 3px),
+                                        radial-gradient(circle at 60% 65%, rgba(0,0,0,0.05) 0 2px, transparent 3px),
+                                        radial-gradient(circle at 80% 20%, rgba(0,0,0,0.05) 0 2px, transparent 3px),
+                                        linear-gradient(135deg, #d8c398, #c2a86f 55%, #ab8f56);"></div>
+                                    <div class="px-2 py-1 bg-white flex items-center justify-between">
+                                        <span class="text-xs font-semibold text-slate-700">Alluvial</span>
+                                        <i class="fa-solid fa-circle-check text-agriGreen text-xs soil-check"></i>
+                                    </div>
+                                </button>
+                                <button type="button" data-soil="Black Soil" data-count="68" onclick="selectSoilType(this)"
+                                    class="soil-swatch-btn group relative rounded-xl border-2 border-transparent hover:border-slate-300 overflow-hidden text-left focus:outline-none">
+                                    <div class="h-14 w-full" style="background:
+                                        radial-gradient(circle at 25% 35%, rgba(255,255,255,0.05) 0 2px, transparent 3px),
+                                        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.04) 0 2px, transparent 3px),
+                                        linear-gradient(135deg, #3c3833, #262220 60%, #151210);"></div>
+                                    <div class="px-2 py-1 bg-white flex items-center justify-between">
+                                        <span class="text-xs font-semibold text-slate-700">Black</span>
+                                        <i class="fas fa-circle-check text-agriGreen text-xs soil-check opacity-0"></i>
+                                    </div>
+                                </button>
+                                <button type="button" data-soil="Cinder Soil" data-count="30" onclick="selectSoilType(this)"
+                                    class="soil-swatch-btn group relative rounded-xl border-2 border-transparent hover:border-slate-300 overflow-hidden text-left focus:outline-none">
+                                    <div class="h-14 w-full" style="background:
+                                        radial-gradient(circle at 30% 30%, rgba(0,0,0,0.15) 0 3px, transparent 4px),
+                                        radial-gradient(circle at 65% 55%, rgba(0,0,0,0.12) 0 2px, transparent 3px),
+                                        radial-gradient(circle at 80% 75%, rgba(255,255,255,0.08) 0 2px, transparent 3px),
+                                        linear-gradient(135deg, #8a8580, #6b6560 55%, #4f4b48);"></div>
+                                    <div class="px-2 py-1 bg-white flex items-center justify-between">
+                                        <span class="text-xs font-semibold text-slate-700">Cinder</span>
+                                        <i class="fas fa-circle-check text-agriGreen text-xs soil-check opacity-0"></i>
+                                    </div>
+                                </button>
+                                <button type="button" data-soil="Red Soil" data-count="75" onclick="selectSoilType(this)"
+                                    class="soil-swatch-btn group relative rounded-xl border-2 border-transparent hover:border-slate-300 overflow-hidden text-left focus:outline-none">
+                                    <div class="h-14 w-full" style="background:
+                                        radial-gradient(circle at 25% 30%, rgba(0,0,0,0.08) 0 2px, transparent 3px),
+                                        radial-gradient(circle at 70% 65%, rgba(0,0,0,0.06) 0 2px, transparent 3px),
+                                        linear-gradient(135deg, #b1543a, #963f28 55%, #7a3220);"></div>
+                                    <div class="px-2 py-1 bg-white flex items-center justify-between">
+                                        <span class="text-xs font-semibold text-slate-700">Red</span>
+                                        <i class="fas fa-circle-check text-agriGreen text-xs soil-check opacity-0"></i>
+                                    </div>
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1.5">Soil classes from the <a href="https://www.kaggle.com/datasets/naivedatamodel/soil-dataset/versions/2" target="_blank" rel="noopener" class="underline hover:text-agriGreen">Soil DataSet</a> (Kaggle).</p>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-camera text-agriGreen"></i> Placeholder Leaf Scan
+                                </h2>
+                                <span class="text-[10px] font-bold uppercase tracking-wide bg-emerald-100 text-agriGreen px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <i class="fa-solid fa-microchip"></i> Instant Pixel Scan
+                                </span>
+                            </div>
+
+                            <div id="dropZone" onclick="document.getElementById('imageInput').click()" 
+                                class="relative overflow-hidden border-2 border-dashed border-slate-300 hover:border-agriGreen rounded-xl p-8 text-center cursor-pointer transition bg-slate-50 hover:bg-emerald-50/30 flex flex-col items-center justify-center min-h-[220px]">
+                                
+                                <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewSelectedImage(event)">
+                                
+                                <div id="uploadPrompt" class="space-y-3">
+                                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400"></i>
+                                    <p class="text-sm font-medium text-slate-700">Click to upload or drag & drop leaf image</p>
+                                    <p class="text-xs text-slate-400">PNG, JPG, or JPEG</p>
+                                    <div class="pt-1">
+                                        <button type="button" onclick="event.stopPropagation(); openLeafCamera();" class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition">
+                                            <i class="fa-solid fa-camera-retro"></i> Scan Live with Camera
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="imagePreviewContainer" class="hidden relative">
+                                    <img id="imagePreview" src="#" alt="Preview" class="max-h-48 rounded-lg shadow-sm border">
+                                    <div id="scanLineOverlay" class="hidden absolute inset-0 rounded-lg overflow-hidden pointer-events-none">
+                                        <div class="scan-line"></div>
+                                    </div>
+                                    <button type="button" onclick="event.stopPropagation(); removeImage();" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Client-side pixel pre-scan panel -->
+                            <div id="quickScanPanel" class="hidden mt-4 border border-slate-200 rounded-xl p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-wave-square text-agriGreen"></i> Instant Pixel Pre-Scan
+                                    </span>
+                                    <span id="quickScanVerdictBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full"></span>
+                                </div>
+                                <div class="space-y-2">
+                                    <div>
+                                        <div class="flex justify-between text-[10px] text-slate-500 mb-0.5"><span>Healthy-green tone</span><span id="qsGreenPct">0%</span></div>
+                                        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="qsGreenBar" class="h-full bg-emerald-500 transition-all duration-700" style="width:0%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-[10px] text-slate-500 mb-0.5"><span>Yellow / brown stress tone</span><span id="qsStressPct">0%</span></div>
+                                        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="qsStressBar" class="h-full bg-amber-500 transition-all duration-700" style="width:0%"></div></div>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-slate-500">Instant read from the uploaded pixels — run the full AI Analysis for a complete field report.</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex justify-end">
+                            <button type="submit" id="submitBtn" class="w-full sm:w-auto px-6 py-3 bg-agriGreen text-white font-semibold rounded-xl shadow-md hover:bg-emerald-700 transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-microchip"></i> Run AI Analysis
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Live Camera Capture Modal -->
+                <div id="cameraModal" class="hidden fixed inset-0 z-50 bg-slate-950/90 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl p-4 w-full max-w-md space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-camera-retro text-agriGreen"></i> Live Leaf Camera Scan</h3>
+                            <button onclick="closeLeafCamera()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="relative rounded-xl overflow-hidden bg-slate-900 aspect-square">
+                            <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+                            <div class="absolute inset-0 pointer-events-none">
+                                <div class="scan-line"></div>
+                            </div>
+                        </div>
+                        <canvas id="cameraCanvas" class="hidden"></canvas>
+                        <p id="cameraError" class="hidden text-xs text-red-600"></p>
+                        <button onclick="captureLeafPhoto()" class="w-full py-2.5 rounded-lg bg-agriGreen text-white text-sm font-semibold hover:bg-emerald-700 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-circle-dot"></i> Capture Photo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visual Reference Gallery: Crops & Land Types -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-images text-agriGreen"></i> Visual Reference Gallery
+                    </h2>
+                    <p class="text-slate-500 text-sm mb-4">A visual guide to the crop varieties this plugin supports — helps confirm you've selected the right one before running the analysis.</p>
+                    <div id="cropGallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"></div>
+                </div>
+            </section>
+
+            <!-- Crop Detail Modal -->
+            <div id="cropDetailModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeCropDetail()"></div>
+                <div class="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-modal-in">
+                    <div id="cropDetailBody"></div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: RESULTS -->
+            <section id="resultsView" class="hidden space-y-6">
+
+                <!-- Results Hero Banner -->
+                <div class="relative rounded-2xl overflow-hidden shadow-sm min-h-[150px] flex items-center">
+                    <img src="https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=1600&q=80"
+                        alt="Farmland aerial view" loading="lazy"
+                        onerror="this.style.display='none'; this.parentElement.classList.add('hero-fallback');"
+                        class="absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/60 to-emerald-900/20"></div>
+                    <div class="relative z-10 p-6 md:p-8 w-full flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-2xl md:text-3xl font-bold">Diagnostic & Analytics Report</h1>
+                                <span id="resCropBadge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold px-2.5 py-1 rounded-full">Wheat</span>
+                            </div>
+                            <p class="text-slate-200 text-sm mt-1" id="resMetaText">Location: The results</p>
+                        </div>
+                        <button onclick="switchView('searchView')" class="shrink-0 px-4 py-2 bg-white/10 border border-white/30 text-white hover:bg-white/20 rounded-lg text-sm font-medium transition flex items-center gap-2 backdrop-blur">
+                            <i class="fa-solid fa-arrow-left"></i> New Search
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Circular Health Gauge -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+                        <div class="relative w-28 h-28">
+                            <svg viewBox="0 0 120 120" class="w-28 h-28 -rotate-90">
+                                <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" stroke-width="12"></circle>
+                                <circle id="healthGaugeRing" cx="60" cy="60" r="52" fill="none" stroke="#16a34a" stroke-width="12"
+                                    stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="80"
+                                    style="transition: stroke-dashoffset 0.8s ease, stroke 0.8s ease;"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="resHealthScore" class="text-2xl font-extrabold text-slate-900">88%</span>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-wide">Health</span>
+                            </div>
+                        </div>
+                        <span id="resHealthLabel" class="mt-2 text-xs font-semibold text-emerald-600 flex items-center gap-1"><i class="fa-solid fa-arrow-up"></i> Good</span>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                            <span>Condition</span>
+                            <i class="fa-solid fa-bug text-slate-400 text-base"></i>
+                        </div>
+                        <div class="mt-3">
+                            <span id="resCondition" class="text-lg font-bold text-slate-900 block truncate">—</span>
+                            <span id="resConfidence" class="text-xs text-slate-500">—</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                            <span>Est. Yield / Acre</span>
+                            <i class="fa-solid fa-seedling text-agriGreen text-base"></i>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-1">
+                            <span id="resYield" class="text-3xl font-extrabold text-slate-900">—</span>
+                            <span class="text-xs text-slate-500">Tons</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                            <span>Soil Moisture</span>
+                            <i class="fa-solid fa-droplet text-blue-500 text-base"></i>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-1">
+                            <span id="resMoisture" class="text-3xl font-extrabold text-slate-900">—</span>
+                            <span class="text-xs text-blue-600 font-medium">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Land Yield + Weather -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-gradient-to-br from-agriGreen to-emerald-700 text-white p-5 rounded-2xl shadow-sm flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-tractor text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wide text-emerald-100">Total Estimated Harvest</p>
+                            <p class="text-2xl font-extrabold" id="resTotalYield">— <span class="text-sm font-medium">tons</span></p>
+                            <p class="text-xs text-emerald-100" id="resFarmSizeLabel">Across — acres</p>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-sun-rain text-blue-500"></i> 5-Day Weather Outlook
+                        </h3>
+                        <div id="forecastStrip" class="grid grid-cols-5 gap-2 text-center"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-800 mb-4">Yield Projection & Historical Comparison</h3>
+                        <div class="relative h-64">
+                            <canvas id="yieldChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-agriGreen"></i> Recommended Actions
+                            </h3>
+                            <ul id="recommendationsList" class="space-y-3 text-sm text-slate-600"></ul>
+                        </div>
+                        <button onclick="window.print()" class="mt-6 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">Export Report (Print)</button>
+                    </div>
+                </div>
+
+                <!-- ADVANCED AI AD DATA STRUCTURED — Marketplace Ad Generator -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fa-solid fa-bullhorn text-agriGreen"></i> Marketplace Ad Generator
+                            </h3>
+                            <p class="text-slate-500 text-xs mt-1">3 listing angles, a quality grade, a suggested price band, and ready-to-send WhatsApp/SMS/email/CSV exports — from this report's real numbers.</p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">$</span>
+                                <input type="number" id="adPricePerTon" min="0" step="0.01" placeholder="Price / ton"
+                                    class="w-32 pl-6 pr-2 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-agriGreen">
+                            </div>
+                            <button id="generateAdBtn" onclick="generateMarketplaceAd()" class="px-4 py-2 bg-agriGreen text-white text-sm font-semibold rounded-lg shadow-md hover:bg-emerald-700 transition flex items-center gap-2">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Listings
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="adEmptyState" class="text-center text-xs text-slate-400 py-6 border border-dashed border-slate-200 rounded-xl">
+                        No listings yet — set a price per ton (optional), then click "Generate Listings."
+                    </div>
+
+                    <div id="adOutputWrap" class="hidden space-y-5">
+                        <!-- Quality/replace -->
+                        <div class="flex flex-wrap items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                            <span id="adQualityBadge" class="text-xs font-bold px-3 py-1.5 rounded-full"></span>
+                            <span id="adPriceBand" class="text-xs text-slate-600"></span>
+                        </div>
+
+                        <div class="border border-slate-200 rounded-xl p-4 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Listing Preview</span>
+                                <span id="adSourceBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500"></span>
+                            </div>
+                            <h4 id="adTitle" class="text-lg font-bold text-slate-900"></h4>
+                            <p id="adDescription" class="text-sm text-slate-600"></p>
+                            <ul id="adHighlights" class="text-xs text-slate-600 space-y-1"></ul>
+                            <div id="adTags" class="flex flex-wrap gap-1.5 pt-1"></div>
+                            <p id="adNote" class="text-[11px] text-amber-600"></p>
+                        </div>
+
+                        <div class="border border-slate-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Send-Ready Exports</span>
+                            </div>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button onclick="switchAdChannel('whatsapp')" id="chBtn-whatsapp" class="ad-channel-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-agri-green text-white">
+                                    <i class="fa-solid fa-whatsapp"></i> WhatsApp
+                                </button>
+                                <button onclick="switchAdChannel('sms')" id="chBtn-sms" class="ad-channel-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600">
+                                    <i class="fa-solid fa-comment-sms"></i> SMS
+                                </button>
+                                <button onclick="switchAdChannel('email')" id="chBtn-email" class="ad-channel-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600">
+                                    <i class="fa-solid fa-envelope"></i> Email
+                                </button>
+                                <button onclick="switchAdChannel('csv')" id="chBtn-csv" class="ad-channel-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-600">
+                                    <i class="fa-solid fa-file-csv"></i> CSV Feed
+                                </button>
+                            </div>
+                            <pre id="adChannelBlock" class="text-xs leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-3 overflow-auto max-h-56 whitespace-pre-wrap"></pre>
+                            <button onclick="copyAdBlock()" class="mt-2 text-xs font-semibold text-agriGreen hover:underline flex items-center gap-1">
+                                <i class="fa-regular fa-copy"></i> Copy this export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 3: HISTORY (localStorage) -->
+            <section id="historyView" class="hidden space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
+                        <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-agriGreen"></i> Scan History
+                        </h2>
+                        <button onclick="loadScanHistory()" class="text-xs font-semibold text-agri-green hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-rotate"></i> Refresh
+                        </button>
+                    </div>
+                    <p class="text-slate-500 text-sm mb-4">Scans are saved in this browser's <code class="bg-slate-100 px-1 py-0.5 rounded text-[11px]">localStorage</code> (key <code class="bg-slate-100 px-1 py-0.5 rounded text-[11px]">agri_scan_history</code>) and listed newest first. Clearing site data will clear it.</p>
+                    <div id="historyStatus" class="text-xs text-slate-400 mb-3"></div>
+                    <div id="historyList" class="space-y-2"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
