@@ -1,3 +1,5 @@
+https://mohitthapa09.github.io/AI-Crop-Analytics-Platfrom/
+
 # AgriVision Backend
 
 A real backend + database for the AI Crop Analytics frontend, replacing the
